@@ -1,29 +1,48 @@
-from flask_restx import Namespace, Resource
+from flask import request
+from flask_restx import Resource, Namespace
 
-from project.container import genre_service
-from project.setup.api.models import genre
-from project.setup.api.parsers import page_parser
+from project.dao.models.genre import GenreSchema
+from project.decorator import admin_required, auth_required
+from project.implemented import genre_service
 
-api = Namespace('genres')
+genre_ns = Namespace('genres')
 
 
-@api.route('/')
+@genre_ns.route('/')
 class GenresView(Resource):
-    @api.expect(page_parser)
-    @api.marshal_with(genre, as_list=True, code=200, description='OK')
+    @auth_required
     def get(self):
-        """
-        Get all genres.
-        """
-        return genre_service.get_all(**page_parser.parse_args())
+        page = request.args.get("page")
+        filters = {"page": page}
+        genre = genre_service.get_all(filters)
+        result = GenreSchema(many=True).dump(genre)
+        return result, 200
+
+    @admin_required
+    def post(self):
+        request_json = request.json
+        genre = genre_service.create(request_json)
+        return "", 201, {"location": f"/genres/{genre.id}"}
 
 
-@api.route('/<int:genre_id>/')
+@genre_ns.route('/<int:gid>')
 class GenreView(Resource):
-    @api.response(404, 'Not Found')
-    @api.marshal_with(genre, code=200, description='OK')
-    def get(self, genre_id: int):
-        """
-        Get genre by id.
-        """
-        return genre_service.get_item(genre_id)
+    @auth_required
+    def get(self, gid):
+        genre = genre_service.get_one(gid)
+        result = GenreSchema().dump(genre)
+        return result, 200
+
+    @admin_required
+    def put(self, gid):
+        request_json = request.json
+        if "id" not in request_json:
+            request_json["id"] = gid
+
+        genre_service.update(request_json)
+        return "", 204
+
+    @admin_required
+    def delete(self, gid):
+        genre_service.delete(gid)
+        return "", 2014

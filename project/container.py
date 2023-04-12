@@ -1,10 +1,10 @@
-from project.dao import GenresDAO
+from project.dao.genre import GenreDAO
 
-from project.services import GenresService
+from project.services.genre import GenreService
 from project.setup.db import db
 
 # DAO
-genre_dao = GenresDAO(db.session)
+genre_dao = GenreDAO(db.session)
 
 # Services
-genre_service = GenresService(dao=genre_dao)
+genre_service = GenreService(dao=genre_dao)
